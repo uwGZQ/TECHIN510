@@ -1,6 +1,6 @@
-# TECHIN 510 Lab 1
+# TECHIN 510 Lab 2
 
-A personal website for TECHIN 510 Lab 1.
+A data analysis website and a timer website for TECHIN 510 Lab 2.
 
 ## How to Run
 
@@ -14,15 +14,5 @@ pip install -r requirements.txt
 
 ## What's Included
 
-- `app.py`: The main Flask application
-
-## Lessons Learned
-
-- How to use Streamlit to create a simple website
-- How to use requirements.txt to manage Python dependencies
-- How to use GitHub Actions to deploy a website to Streamlit Cloud Platform
-
-## Questions / Uncertainties
-
-- What if I want to make the profile picture round?
-- How to deploy on Azure platform
+- `app.py`: The data analysis and visualization application
+- `timer.py`: The timer application

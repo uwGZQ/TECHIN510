@@ -1,1 +1,5 @@
 streamlit
+pytz
+pandas
+matplotlib
+seaborn

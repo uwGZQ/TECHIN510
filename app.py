@@ -1,75 +1,66 @@
+# app.py
 import streamlit as st
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
 
-# Set page configuration
-st.set_page_config(page_title="Ziqi Gao - Master's Student at UW", page_icon="🎓", layout="wide")
+def load_data():
+    """Loads the Iris dataset."""
+    data = sns.load_dataset('iris')
+    return data
 
-# Use columns to create a more engaging layout
-col1, col2 = st.columns([1, 3])
-
-# In the smaller column, add personal image and contact information in the sidebar style
-with col1:
-    st.image("img/ziqi.jpg", caption="Ziqi Gao", width=200)
-    st.header("Contact Information 📬")
-    st.write("Email: gzq@uw.edu")
-    st.write("LinkedIn: [Ziqi Gao LinkedIn Page](https://www.linkedin.com/in/ziqi-gao-b86493297/)")
-    st.write("GitHub: [Ziqi Gao's GitHub](https://github.com/uwGZQ)")
-
-# In the larger column, add the main content
-with col2:
-    st.title("Ziqi Gao's Self-Introduction 🌟")
-
-    # Basic Information
-    st.header("Basic Information 📖")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Name")
-        st.write("Ziqi Gao")
-        st.subheader("Position")
-        st.write("Master's Student in Data Science at Tsinghua University and Technology Innovation at University of Washington") 
-    with col2:
-        st.subheader("Location")
-        st.write("Seattle, WA, United States")
-    
-    # Education Background
-    st.header("Education Background 🏫")
-    edu_data = [
-        # {"Degree": "Bachelor's", "Major": "Computer Science and Technology", "Institution": "BUPT", "Year": "2018-2022"},
-        {"Degree": "Master's", "Major": "Data Science and Information Technology", "Institution": "Tsinghua University", "Year": "2022-present"},
-        {"Degree": "Master's", "Major": "Technology Innovation (Robotics)", "Institution": "University of Washington", "Year": "2023-present"},
-    ]
-    st.table(edu_data)
-
-    # Research Directions
-    st.header("Research Directions 🔍")
-    st.markdown("""
-    - **Research Area 1**: Multi-modal machine learning 🧠
-    - **Research Area 2**: Human-Computer Interaction 👨‍💻
-    - **Research Area 3**: Computer Vision 👁
+def display_header(app_title):
+    """Displays the application title and introduction."""
+    st.title(app_title)
+    st.write("""
+    This Streamlit web app demonstrates data analysis and visualization of the Iris dataset. 
+    The Iris dataset is a classic dataset in the fields of machine learning and statistics 
+    and includes measurements of 150 iris flowers from three different species.
     """)
 
-    # Projects
-    st.header("Research Projects 💼")
-    projects = [
-        "MMTSA: [\[Paper\]](https://ubicomplab.cs.washington.edu/pdfs/mmtsa.pdf) [\[GitHub\]](https://github.com/THU-CS-PI-LAB/MMTSA) - This paper proposes an efficient multimodal neural architecture for HAR using an RGB camera and IMUs called Multimodal Temporal Segment Attention Network (MMTSA).",
-        "Eye gaze-enhanced Human activity Recognition: - This project aims to improve the accuracy of human activity recognition by incorporating eye gaze information.",
-    ]
-    for project in projects:
-        st.markdown(f"- {project}")
+def user_input_features(iris):
+    """Generates user input features for filtering the dataset."""
+    species = st.sidebar.selectbox('Species', options=iris['species'].unique(), index=0)
+    petal_length_min, petal_length_max = iris['petal_length'].min(), iris['petal_length'].max()
+    petal_length = st.sidebar.slider('Petal Length', 
+                                     float(petal_length_min), 
+                                     float(petal_length_max), 
+                                     (float(petal_length_min), float(petal_length_max)))
+    return species, petal_length
 
-    # Hobbies and Interests
-    st.header("Hobbies and Interests 🎈")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.header("Hobbies")
-        st.markdown("""
-        - Basketball 🏀
-        - Music 🎵
-        - Chess ♟️       
-        """)
-    with col2:
-        st.header("Interests")
-        st.markdown("""
-        - Poetry 📝
-        - Traveling ✈️
-        - R&B 🎶
-        """)
+def filter_data(iris, species, petal_length):
+    """Filters the dataset based on user selection."""
+    filtered_data = iris[(iris['species'] == species) & 
+                         (iris['petal_length'] >= petal_length[0]) & 
+                         (iris['petal_length'] <= petal_length[1])]
+    return filtered_data
+
+def display_data(data):
+    """Displays the filtered dataset."""
+    st.write("## Filtered Data", data)
+    
+
+def plot_data(data):
+    """Plots the filtered dataset."""
+    fig, ax = plt.subplots()
+    sns.scatterplot(data=data, x='sepal_length', y='sepal_width', hue='species', style='species', ax=ax)
+    plt.title('Sepal Length vs. Sepal Width')
+    st.pyplot(fig)
+
+# Load the dataset
+iris = load_data()
+
+# Display the header
+display_header("Iris Dataset Analysis")
+
+# User input for filtering
+species_selected, petal_length_selected = user_input_features(iris)
+
+# Filter the data based on user input
+filtered_iris = filter_data(iris, species_selected, petal_length_selected)
+
+# Display the filtered data
+display_data(filtered_iris)
+
+# Visualize the filtered data
+plot_data(filtered_iris)
