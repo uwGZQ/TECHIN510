@@ -1,75 +1,108 @@
+
+
+
+import os
+from dataclasses import dataclass, field
+
 import streamlit as st
+import psycopg2
+from dotenv import load_dotenv
+load_dotenv()
+from urllib.parse import quote
+raw_pass = os.getenv("SUPABASE_PASSWORD")
+passwd = quote(raw_pass)
 
-# Set page configuration
-st.set_page_config(page_title="Ziqi Gao - Master's Student at UW", page_icon="🎓", layout="wide")
+con = psycopg2.connect(f"postgres://postgres.ryuispstuutbtcbxjcma:{passwd}@aws-0-us-west-1.pooler.supabase.com:5432/postgres")
+cur = con.cursor()
 
-# Use columns to create a more engaging layout
-col1, col2 = st.columns([1, 3])
 
-# In the smaller column, add personal image and contact information in the sidebar style
-with col1:
-    st.image("img/ziqi.jpg", caption="Ziqi Gao", width=200)
-    st.header("Contact Information 📬")
-    st.write("Email: gzq@uw.edu")
-    st.write("LinkedIn: [Ziqi Gao LinkedIn Page](https://www.linkedin.com/in/ziqi-gao-b86493297/)")
-    st.write("GitHub: [Ziqi Gao's GitHub](https://github.com/uwGZQ)")
 
-# In the larger column, add the main content
-with col2:
-    st.title("Ziqi Gao's Self-Introduction 🌟")
+# Ensure the table exists and has all necessary columns
+cur.execute(
+    """
+    CREATE TABLE IF NOT EXISTS prompts (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        prompt TEXT NOT NULL,
+        favorite BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """
+)
+con.commit()  # Commit any changes made to the database
 
-    # Basic Information
-    st.header("Basic Information 📖")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.subheader("Name")
-        st.write("Ziqi Gao")
-        st.subheader("Position")
-        st.write("Master's Student in Data Science at Tsinghua University and Technology Innovation at University of Washington") 
-    with col2:
-        st.subheader("Location")
-        st.write("Seattle, WA, United States")
-    
-    # Education Background
-    st.header("Education Background 🏫")
-    edu_data = [
-        # {"Degree": "Bachelor's", "Major": "Computer Science and Technology", "Institution": "BUPT", "Year": "2018-2022"},
-        {"Degree": "Master's", "Major": "Data Science and Information Technology", "Institution": "Tsinghua University", "Year": "2022-present"},
-        {"Degree": "Master's", "Major": "Technology Innovation (Robotics)", "Institution": "University of Washington", "Year": "2023-present"},
-    ]
-    st.table(edu_data)
+@dataclass
+class Prompt:
+    title: str
+    prompt: str
+    id: int = field(default=None)
+    favorite: bool = field(default=False)
 
-    # Research Directions
-    st.header("Research Directions 🔍")
-    st.markdown("""
-    - **Research Area 1**: Multi-modal machine learning 🧠
-    - **Research Area 2**: Human-Computer Interaction 👨‍💻
-    - **Research Area 3**: Computer Vision 👁
-    """)
+def prompt_form(prompt=Prompt("", "", None, False)):
+    with st.form(key="prompt_form"):
+        title = st.text_input("Title", value=prompt.title, max_chars=50)
+        prompt_text = st.text_area("Prompt", height=200, value=prompt.prompt)
+        favorite = st.checkbox("Favorite", value=prompt.favorite)
+        submitted = st.form_submit_button("Submit")
+        if submitted and title and prompt_text:  # Validation check
+            return Prompt(title, prompt_text, prompt.id, favorite)
 
-    # Projects
-    st.header("Research Projects 💼")
-    projects = [
-        "MMTSA: [\[Paper\]](https://ubicomplab.cs.washington.edu/pdfs/mmtsa.pdf) [\[GitHub\]](https://github.com/THU-CS-PI-LAB/MMTSA) - This paper proposes an efficient multimodal neural architecture for HAR using an RGB camera and IMUs called Multimodal Temporal Segment Attention Network (MMTSA).",
-        "Eye gaze-enhanced Human activity Recognition: - This project aims to improve the accuracy of human activity recognition by incorporating eye gaze information.",
-    ]
-    for project in projects:
-        st.markdown(f"- {project}")
+def update_prompt(id, title, prompt_text, favorite):
+    cur.execute(
+        "UPDATE prompts SET title = %s, prompt = %s, favorite = %s, updated_at = CURRENT_TIMESTAMP WHERE id = %s",
+        (title, prompt_text, favorite, id,)
+    )
+    con.commit()
 
-    # Hobbies and Interests
-    st.header("Hobbies and Interests 🎈")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.header("Hobbies")
-        st.markdown("""
-        - Basketball 🏀
-        - Music 🎵
-        - Chess ♟️       
-        """)
-    with col2:
-        st.header("Interests")
-        st.markdown("""
-        - Poetry 📝
-        - Traveling ✈️
-        - R&B 🎶
-        """)
+def insert_prompt(title, prompt_text, favorite):
+    cur.execute(
+        "INSERT INTO prompts (title, prompt, favorite) VALUES (%s, %s, %s) RETURNING id",
+        (title, prompt_text, favorite,)
+    )
+    con.commit()
+    return cur.fetchone()[0]
+
+st.title("Promptbase")
+st.subheader("A simple app to store and retrieve prompts")
+
+# Search and Sorting UI
+search_query = st.text_input('Search prompts')
+sort_by_date = st.checkbox('Sort by date', value=True)
+sort_order = "DESC" if sort_by_date else "ASC"
+# Prepare query based on user input
+search_condition = "WHERE title ILIKE %s OR prompt ILIKE %s" if search_query else ""
+order_condition = f"ORDER BY created_at {sort_order}"
+cur.execute(f"SELECT id, title, prompt, favorite FROM prompts {search_condition} {order_condition}", (f"%{search_query}%", f"%{search_query}%"))
+prompts = [Prompt(title=row[1], prompt=row[2], id=row[0], favorite=row[3]) for row in cur.fetchall()]
+
+# Display prompts with options to edit, delete, and mark as favorite
+for prompt in prompts:
+    with st.expander(prompt.title):
+        st.code(prompt.prompt)
+        col1, col2, col3 = st.columns([1,1,1])
+        with col1:
+            if st.button("Edit", key=f"edit_{prompt.id}"):
+                edited_prompt = prompt_form(prompt)
+                if edited_prompt:
+                    update_prompt(edited_prompt.id, edited_prompt.title, edited_prompt.prompt, edited_prompt.favorite)
+                    st.success("Prompt updated successfully!")
+                    st.experimental_rerun()
+        with col2:
+            if st.button("Delete", key=f"delete_{prompt.id}"):
+                cur.execute("DELETE FROM prompts WHERE id = %s", (prompt.id,))
+                con.commit()
+                st.success("Prompt deleted successfully!")
+                st.experimental_rerun()
+        with col3:
+            if st.checkbox("Favorite", value=prompt.favorite, key=f"fav_{prompt.id}"):
+                update_prompt(prompt.id, prompt.title, prompt.prompt, not prompt.favorite)
+
+# Add new prompt form
+new_prompt = prompt_form()
+if new_prompt:
+    insert_prompt(new_prompt.title, new_prompt.prompt, new_prompt.favorite)
+    st.success("Prompt added successfully!")
+
+# Ensure the connection is closed to prevent resource leaks
+con.close()
