@@ -20,10 +20,9 @@ pip install -r requirements.txt
 
 Before running the application, ensure that your PostgreSQL database is configured:
 
-1. Update the database connection details in `db.py` with your PostgreSQL credentials:
-```python
-db = Database('your_dbname', 'your_username', 'your_password', 'localhost')
-```
+1. Update the database connection details in `.env` with your PostgreSQL credentials.
+
+
 2. Ensure the PostgreSQL server is running.
 
 ## Running the App
