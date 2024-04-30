@@ -43,9 +43,13 @@ def generate_itinerary_via_gemini_api(destination, budget, dates, activities, ap
     model = genai.GenerativeModel('gemini-pro')
 
     # Formatting the prompt
-    prompt = f"Generate a travel itinerary for a {destination.lower()} destination with a budget of ${budget}, " \
-             f"from {dates[0]} to {dates[-1]}, including activities like {', '.join(activities)}."
-
+    prompt = f"Step 1: Use a budget planning tool to calculate daily expenses. Create a detailed travel itinerary for a city destination within a budget of ${budget}, for the period from {dates[0]} to {dates[-1]}."\
+        f"Step 2: Propose a daily schedule from {dates[0]} to {dates[-1]}. The itinerary should include activities such as {', '.join(activities)}. "\
+            f"Please ensure that the schedule is realistic and includes costs for each activity."\
+                f"Step 3: Provide a list of recommended restaurants and cafes to visit during the trip. Include the type of cuisine and average cost per meal."\
+                    f"Step 4: Sum up the costs for each day to ensure the total does not exceed ${budget}."\
+                        f"Tips: Return all the information in a clear and organized markdown format."
+    
 
     response = model.generate_content(prompt)
     
