@@ -1,1 +1,11 @@
 streamlit
+psycopg2-binary
+python-dotenv
+requests
+beautifulsoup4
+google-generativeai
+sentence-transformers
+tiktoken
+openai
+supabase
+torch
